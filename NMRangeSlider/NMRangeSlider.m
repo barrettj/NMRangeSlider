@@ -11,7 +11,7 @@
 
 #define IS_PRE_IOS7() (DeviceSystemMajorVersion() < 7)
 
-NSUInteger DeviceSystemMajorVersion() {
+static NSUInteger DeviceSystemMajorVersion() {
     static NSUInteger _deviceSystemMajorVersion = -1;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
