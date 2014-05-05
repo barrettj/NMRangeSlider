@@ -204,9 +204,15 @@
 
 - (void) configureSteppedSliderAlternative
 {
-    self.steppedContinuouslySlider.stepValue = 0.2;
+    self.steppedContinuouslySlider.minimumValue = 0.0f;
+    self.steppedContinuouslySlider.maximumValue = 4.0f;
+    
+    self.steppedContinuouslySlider.stepValue = 1.0;
     self.steppedContinuouslySlider.stepValueContinuously = YES;
     
+    self.steppedContinuouslySlider.tickLabels = @[@"A", @"1", @"2", @"3", @"E"];
+    
+    self.steppedContinuouslySlider.showTickMarks = YES;
 }
 
 

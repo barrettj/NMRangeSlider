@@ -36,6 +36,8 @@ NSUInteger DeviceSystemMajorVersion() {
 @property (retain, nonatomic) UIImageView* track;
 @property (retain, nonatomic) UIImageView* trackBackground;
 
+@property (retain, nonatomic) UIView* tickMarkView;
+
 @end
 
 
@@ -95,6 +97,10 @@ NSUInteger DeviceSystemMajorVersion() {
     _upperMinimumValue = NAN;
     _upperHandleHidden = NO;
     _lowerHandleHidden = NO;
+    
+    _showTickMarks = NO;
+    _tickMarkXOffset = - 2.0f;
+    _tickMarkYOffset = 2.0f;
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -419,7 +425,13 @@ NSUInteger DeviceSystemMajorVersion() {
     float xLowerValue = ((self.bounds.size.width - lowerHandleWidth) * (_lowerValue - _minimumValue) / (_maximumValue - _minimumValue))+(lowerHandleWidth/2.0f);
     float xUpperValue = ((self.bounds.size.width - upperHandleWidth) * (_upperValue - _minimumValue) / (_maximumValue - _minimumValue))+(upperHandleWidth/2.0f);
     
-    retValue.origin = CGPointMake(xLowerValue, (self.bounds.size.height/2.0f) - (retValue.size.height/2.0f));
+    CGRect effectiveBounds = self.bounds;
+    
+    if (self.showTickMarks && self.stepValue > 0.0f) {
+        effectiveBounds.size.height -= 20;
+    }
+    
+    retValue.origin = CGPointMake(xLowerValue, (effectiveBounds.size.height/2.0f) - (retValue.size.height/2.0f));
     retValue.size.width = xUpperValue-xLowerValue;
 
     return retValue;
@@ -454,7 +466,13 @@ NSUInteger DeviceSystemMajorVersion() {
         trackBackgroundRect.size.width=self.bounds.size.width-4;
     }
     
-    trackBackgroundRect.origin = CGPointMake(2, (self.bounds.size.height/2.0f) - (trackBackgroundRect.size.height/2.0f));
+    CGRect effectiveBounds = self.bounds;
+    
+    if (self.showTickMarks && self.stepValue > 0.0f) {
+        effectiveBounds.size.height -= 20;
+    }
+    
+    trackBackgroundRect.origin = CGPointMake(2, (effectiveBounds.size.height/2.0f) - (trackBackgroundRect.size.height/2.0f));
     
     return trackBackgroundRect;
 }
@@ -472,12 +490,32 @@ NSUInteger DeviceSystemMajorVersion() {
         thumbRect.size.height=self.bounds.size.height;
     }
     
+    CGRect effectiveBounds = self.bounds;
+
+    if (self.showTickMarks && self.stepValue > 0.0f) {
+        effectiveBounds.size.height -= 20;
+    }
+
+    
     float xValue = ((self.bounds.size.width-thumbRect.size.width)*((value - _minimumValue) / (_maximumValue - _minimumValue)));
-    thumbRect.origin = CGPointMake(xValue, (self.bounds.size.height/2.0f) - (thumbRect.size.height/2.0f));
+    thumbRect.origin = CGPointMake(xValue, (effectiveBounds.size.height/2.0f) - (thumbRect.size.height/2.0f));
     
     return CGRectIntegral(thumbRect);
 
 }
+
+//returms the rect of the tick markers
+- (CGRect)tickMarkRect
+{
+    CGRect tickMarkRect = [self trackBackgroundRect];
+    
+    tickMarkRect.origin.y = tickMarkRect.origin.y + tickMarkRect.size.height + self.tickMarkYOffset;
+    
+    tickMarkRect.size.height = (self.bounds.size.height / 2.0f) - self.tickMarkYOffset - 1.0f;
+    
+    return CGRectIntegral(tickMarkRect);
+}
+
 
 // ------------------------------------------------------------------------------------------------------
 
@@ -507,8 +545,13 @@ NSUInteger DeviceSystemMajorVersion() {
     self.upperHandle = [[UIImageView alloc] initWithImage:self.upperHandleImageNormal highlightedImage:self.upperHandleImageHighlighted];
     self.upperHandle.frame = [self thumbRectForValue:_upperValue image:self.upperHandleImageNormal];
     
+    //------------------------------
+    // Tick Marks VIew
+    self.tickMarkView = [[UIView alloc] initWithFrame:[self tickMarkRect]];
+    
     [self addSubview:self.trackBackground];
     [self addSubview:self.track];
+    [self addSubview:self.tickMarkView];
     [self addSubview:self.lowerHandle];
     [self addSubview:self.upperHandle];
 }
@@ -548,6 +591,54 @@ NSUInteger DeviceSystemMajorVersion() {
     self.upperHandle.highlightedImage = self.upperHandleImageHighlighted;
     self.upperHandle.hidden= self.upperHandleHidden;
     
+    self.tickMarkView.frame = [self tickMarkRect];
+    
+    if (self.showTickMarks && self.stepValue > 0) {
+        self.tickMarkView.hidden = NO;
+        
+        for (UIView *subview in self.tickMarkView.subviews) {
+            [subview removeFromSuperview];
+        }
+        
+        NSUInteger ticks = (NSUInteger) ((self.maximumValue - self.minimumValue) / self.stepValue) + 1;
+        
+        CGFloat xPos = CGRectGetMidX([self thumbRectForValue:self.minimumValue image:self.lowerHandleImageNormal]);
+        
+        CGFloat maxX = CGRectGetMidX([self thumbRectForValue:self.maximumValue image:self.upperHandleImageNormal]);
+        
+        CGFloat sliderWidth = maxX - xPos;
+        
+        CGFloat offset = sliderWidth / (ticks - 1);
+        
+        xPos += self.tickMarkXOffset;
+        
+        for (NSUInteger i = 0; i < ticks; i++)
+        {
+            CGFloat const tickWidth = 2.0f;
+            
+            CGFloat tickHeight = 6.0f;
+            
+            CGRect tickRect = CGRectIntegral(CGRectMake(xPos - (tickWidth / 2.0f), 0, tickWidth, tickHeight));
+            
+            UIView *tick = [[UIView alloc] initWithFrame:tickRect];
+            tick.backgroundColor = [UIColor lightGrayColor];
+            [self.tickMarkView addSubview:tick];
+            
+            if (self.tickLabels && self.tickLabels.count > i) {
+                UILabel *tickLabel = [[UILabel alloc] init];
+                tickLabel.text = self.tickLabels[i];
+                [tickLabel sizeToFit];
+                tickLabel.center = CGPointMake(xPos, tickHeight + 2.0f + (tickLabel.bounds.size.height / 2));
+                
+                [self.tickMarkView addSubview:tickLabel];
+            }
+            
+            xPos += offset;
+        }
+    }
+    else {
+        self.tickMarkView.hidden = YES;
+    }
 }
 
 - (CGSize)intrinsicContentSize

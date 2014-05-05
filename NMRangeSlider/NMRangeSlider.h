@@ -74,7 +74,10 @@
 @property(retain, nonatomic) UIImage* trackBackgroundImage;
 
 
-
+@property(assign, nonatomic) BOOL showTickMarks;
+@property(assign, nonatomic) CGFloat tickMarkXOffset;
+@property(assign, nonatomic) CGFloat tickMarkYOffset;
+@property(copy, nonatomic) NSArray *tickLabels;
 
 //Setting the lower/upper values with an animation :-)
 - (void)setLowerValue:(float)lowerValue animated:(BOOL) animated;
